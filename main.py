@@ -1,57 +1,63 @@
 import pygame
-import random, time, sys
+import copy
 
 fps = 60
-width, height = 600, 500
-cell_size, surf_w, surf_h = 20, 20, 10
+cell_size, width, height = 20, 10, 20
+
+pygame.init()
+screen = pygame.display.set_mode((cell_size * width, cell_size * height))
+clock = pygame.time.Clock()
+running = True
+
+grid = []  # сетка игрового поля
+for x in range(width):
+    for y in range(height):
+        grid.append(pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size))
+
+figures_pos = [[(-1, 0), (-2, 0), (0, 0), (1, 0)],  # координаты клеток фигуры
+               [(0, -1), (-1, -1), (-1, 0), (0, 0)],
+               [(-1, 0), (-1, 1), (0, 0), (0, -1)],
+               [(0, 0), (-1, 0), (0, 1), (-1, -1)],
+               [(0, 0), (0, -1), (0, 1), (-1, -1)],
+               [(0, 0), (0, -1), (0, 1), (1, 1)],
+               [(0, 0), (0, -1), (0, 1), (-1, 0)]]
+
+figures = [[pygame.Rect(x + width // 2, y + 1, 1, 1) for x, y in f_pos] for f_pos in figures_pos]
+figure_rect = pygame.Rect(0, 0, cell_size - 2, cell_size - 2)
+figure = copy.deepcopy(figures[0])  # тестовая фигура
 
 
-class Board:
-    # создание поля
-    def __init__(self):
-        self.width = width
-        self.height = height
-        self.board = [[0] * width for _ in range(height)]
-        # значения по умолчанию
-        self.left = 200
-        self.top = 50
-        self.cell_size = 50
-
-    # настройка внешнего вида
-    def set_view(self):
-        self.left = 200
-        self.top = 100
-        self.cell_size = cell_size
-
-    def render(self):
-        pygame.draw.rect(screen, 'WHITE', (self.left, self.top, 20 * 10, 20 * 20 - 5), 1)
-
-    def get_cell(self, mouse_pos):
-        if (mouse_pos[0] < self.left) or (
-                mouse_pos[0] > self.left + self.width * self.cell_size) \
-                or (mouse_pos[1] < self.top) or (
-                mouse_pos[1] > self.top + self.height * self.cell_size):
-            return None
-        return (mouse_pos[0] - self.left) // self.cell_size, (
-                mouse_pos[1] - self.top) // self.cell_size
-
-    def on_click(self, cell_coords):
-        print(cell_coords)
+def col_borders():  # столкновение с границами
+    if figure[i].x < 0 or figure[i].x > width - 1:
+        return True
+    return False
 
 
-if __name__ == '__main__':
-    # поле 5 на 7
-    pygame.init()
-    size = width, height = 600, 500
-    screen = pygame.display.set_mode(size)
-    board = Board()
-    board.set_view()
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-        screen.fill((0, 0, 0))
-        board.render()
-        pygame.display.flip()
-    pygame.quit()
+while running:
+    dx = 0
+    screen.fill((0, 0, 0))
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                dx = -1
+            elif event.key == pygame.K_RIGHT:
+                dx = 1
+    fig_copy = copy.deepcopy(figure)
+    for i in range(4):
+        figure[i].x += dx
+        if col_borders():
+            figure = copy.deepcopy(fig_copy)
+            break
+
+    for cell in grid:
+        pygame.draw.rect(screen, (30, 30, 30), cell, 1)  # отрисовка сетки игрового поля
+
+    for i in range(4):  # отрисовка фигуры
+        figure_rect.x = figure[i].x * cell_size
+        figure_rect.y = figure[i].y * cell_size
+        pygame.draw.rect(screen, 'white', figure_rect)
+
+    pygame.display.flip()
+    clock.tick(fps)
