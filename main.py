@@ -1,16 +1,56 @@
 import pygame
 import copy
 from random import choice, randrange
+import sys
 
 fps = 60
 cell_size, width, height = 25, 10, 20
 
 pygame.init()
 screen = pygame.display.set_mode((450, 540))
-pygame.display.set_caption('Тетрис')
+pygame.display.set_caption('Tetris')
 game_screen = pygame.Surface((cell_size * width, cell_size * height))
 clock = pygame.time.Clock()
 running = True
+pygame.mixer.music.load("data/tetris_theme.mp3")
+pygame.mixer.music.set_volume(0.05)
+gameover = pygame.mixer.Sound('data/game_over.mp3')
+end = False
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    intro_text = ["Tetris", "",
+                  "Управление стрелками",
+                  "Нажмите, чтобы начать"]
+
+    fon = pygame.transform.scale(pygame.image.load('data/fon.jpg'), (450, 540))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, True, pygame.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.y = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(fps)
+
 
 grid = []  # сетка игрового поля
 for x in range(width):
@@ -30,14 +70,14 @@ figure_rect = pygame.Rect(0, 0, cell_size - 2, cell_size - 2)
 
 
 def create_field():
-    game_field = []
+    field = []
     line_field = []
     for _ in range(height):
         for _ in range(width):
             line_field.append(0)
-        game_field.append(line_field.copy())
+        field.append(line_field.copy())
         line_field.clear()
-    return game_field
+    return field
 
 
 game_field = create_field()
@@ -45,9 +85,11 @@ a_count, a_speed, a_limit = 0, 60, 2000
 figure, next_figure = copy.deepcopy(choice(figures)), copy.deepcopy(choice(figures))
 
 font = pygame.font.Font('data/font.ttf', 35)
+end_font = pygame.font.Font('data/font.ttf', 25)
 title = font.render('TETRIS', True, pygame.Color('green'))
 score_title = font.render('score:', True, pygame.Color('LightBlue'))
 record_title = font.render('record:', True, 'purple')
+game_over_title = end_font.render('GAME OVER', True, 'red')
 score, lines = 0, 0
 scores = {0: 0, 1: 100, 2: 300, 3: 700, 4: 1500}
 
@@ -80,7 +122,10 @@ def set_record(record, score):
         f.write(str(max(int(record), score)))
 
 
+start_screen()
+pygame.mixer.music.play(-1)
 while running:
+
     record = get_record()
     rotate = False
     dx = 0
@@ -175,14 +220,31 @@ while running:
 
     for i in range(width):  # перезапуск игры
         if game_field[0][i]:
+            pygame.mixer.music.stop()
+            gameover.play()
+            gameover.set_volume(0.05)
             set_record(record, score)
             game_field = create_field()
             a_count, a_speed, a_limit = 0, 60, 2000
             score = 0
             for rect in grid:
+                screen.blit(game_over_title, (290, 250))
                 pygame.draw.rect(game_screen, color, rect)
                 screen.blit(game_screen, (20, 20))
                 pygame.display.flip()
                 clock.tick(200)
+            while True:
+                if end:
+                    break
+                end = False
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        terminate()
+                    elif event.type == pygame.KEYDOWN or \
+                            event.type == pygame.MOUSEBUTTONDOWN:
+                        end = True
+                pygame.display.flip()
+                clock.tick(fps)
+            pygame.mixer.music.play()
     pygame.display.flip()
     clock.tick(fps)
