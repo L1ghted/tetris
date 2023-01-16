@@ -86,8 +86,8 @@ figure, next_figure = copy.deepcopy(choice(figures)), copy.deepcopy(choice(figur
 
 font = pygame.font.Font('data/font.ttf', 35)
 end_font = pygame.font.Font('data/font.ttf', 25)
-title = font.render('TETRIS', True, pygame.Color('green'))
-score_title = font.render('score:', True, pygame.Color('LightBlue'))
+title = font.render('TETRIS', True, 'green')
+score_title = font.render('score:', True, 'LightBlue')
 record_title = font.render('record:', True, 'purple')
 game_over_title = end_font.render('GAME OVER', True, 'red')
 score, lines = 0, 0
@@ -122,6 +122,35 @@ def set_record(record, score):
         f.write(str(max(int(record), score)))
 
 
+def paused():
+    pygame.mixer.music.pause()
+    pause = pygame.Surface((450, 540), pygame.SRCALPHA)
+    pause.fill((100, 100, 100, 127))
+    screen.blit(pause, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text = "Нажмите любую клавишу для продолжения"
+    pause_title = font.render('PAUSE', True, 'white')
+    string_rendered = font.render(text, True, pygame.Color('white'))
+    text_rect = string_rendered.get_rect()
+    text_rect.center = (450 / 2), (540 / 2)
+    pause_rect = pause_title.get_rect()
+    pause_rect.center = (450 / 2), (540 / 2)
+    pause_rect.y = text_rect.y - 50
+    screen.blit(string_rendered, text_rect)
+    screen.blit(pause_title, pause_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.mixer.music.unpause()
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(fps)
+
+
 start_screen()
 pygame.mixer.music.play(-1)
 while running:
@@ -149,6 +178,8 @@ while running:
                 a_limit = 400
             if event.key == pygame.K_UP:
                 rotate = True
+            if event.key == pygame.K_SPACE:
+                paused()
 
     fig_copy = copy.deepcopy(figure)  # движение фигуры по х
     for i in range(4):
@@ -227,9 +258,10 @@ while running:
             game_field = create_field()
             a_count, a_speed, a_limit = 0, 60, 2000
             score = 0
+            end_color = rand_color()
             for rect in grid:
                 screen.blit(game_over_title, (290, 250))
-                pygame.draw.rect(game_screen, color, rect)
+                pygame.draw.rect(game_screen, end_color, rect)
                 screen.blit(game_screen, (20, 20))
                 pygame.display.flip()
                 clock.tick(200)
